@@ -1,0 +1,33 @@
+[project]
+name            = "tf-jepa"
+version         = "0.1.0"
+description     = "Add your description here"
+readme          = "README.md"
+requires-python = ">=3.12"
+
+dependencies = [
+    "numpy>=2.2.5",
+    "ray[train]>=2.45.0",
+    "scikit-learn>=1.6.1",
+    "torch>=2.7.0",
+    "tqdm>=4.67.1",
+]
+
+# ──────────────────────────────────────────────
+# Tell setuptools: “my packages live in ./src”
+# ──────────────────────────────────────────────
+[build-system]
+requires      = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}     # <- instead of {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.uv.workspace]
+members = [
+    "baselines/tfc",
+    "baselines/ts-tcc",
+]
