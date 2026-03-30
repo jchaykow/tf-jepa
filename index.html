@@ -1,0 +1,725 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TF-JEPA: Predictive Alignment of Time–Frequency Representations Without Contrastive Pairs</title>
+  <meta name="description" content="TF-JEPA is a non-contrastive self-supervised framework for learning shared time–frequency representations from unlabeled time-series data. ICLR 2026.">
+
+  <!-- TODO: Replace with your actual OpenGraph image URL -->
+  <meta property="og:image" content="paper/assets/TF-JEPA Architecture-2.png">
+  <meta property="og:title" content="TF-JEPA — ICLR 2026">
+  <meta property="og:type" content="website">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,300..900;1,8..60,300..900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --color-bg: #ffffff;
+      --color-surface: #f7f8fa;
+      --color-border: #e2e5ea;
+      --color-text: #1a1a2e;
+      --color-text-secondary: #555770;
+      --color-accent: #3a4dc7;
+      --color-accent-hover: #2d3da6;
+      --color-accent-light: #eef0fb;
+      --color-highlight: #f0c850;
+      --font-serif: 'Source Serif 4', 'Georgia', serif;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+      --max-width: 860px;
+      --nav-height: 52px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { scroll-behavior: smooth; scroll-padding-top: calc(var(--nav-height) + 24px); }
+
+    body {
+      font-family: var(--font-sans);
+      color: var(--color-text);
+      background: var(--color-bg);
+      line-height: 1.7;
+      font-size: 16px;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Sticky Navigation ──────────────────────────────── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--color-border);
+      height: var(--nav-height);
+    }
+    .nav-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+    }
+    .nav-title {
+      font-family: var(--font-serif);
+      font-weight: 700;
+      font-size: 15px;
+      color: var(--color-text);
+      text-decoration: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+    .nav-links { display: flex; gap: 6px; flex-wrap: nowrap; }
+    .nav-links a {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      text-decoration: none;
+      padding: 6px 10px;
+      border-radius: 6px;
+      transition: background 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .nav-links a:hover { background: var(--color-accent-light); color: var(--color-accent); }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 24px; }
+
+    section { padding: 56px 0; }
+    section + section { border-top: 1px solid var(--color-border); }
+
+    /* ── Hero ────────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      padding: 72px 0 56px;
+      border-top: none;
+    }
+    .hero-venue {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--color-accent-light);
+      color: var(--color-accent);
+      font-weight: 600;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+    }
+    .hero-venue img {
+      height: 16px;
+      width: auto;
+    }
+    h1 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.75rem, 4vw, 2.6rem);
+      font-weight: 700;
+      line-height: 1.25;
+      max-width: 780px;
+      margin: 0 auto 20px;
+      letter-spacing: -0.01em;
+    }
+    .hero-authors {
+      font-size: 17px;
+      color: var(--color-text);
+      margin-bottom: 4px;
+      font-weight: 500;
+    }
+    .hero-affiliation {
+      font-size: 14px;
+      color: var(--color-text-secondary);
+      margin-bottom: 32px;
+    }
+    .hero-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 10px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border-radius: 8px;
+      text-decoration: none;
+      transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+      cursor: pointer;
+      border: none;
+      font-family: var(--font-sans);
+    }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary {
+      background: var(--color-accent);
+      color: #fff;
+    }
+    .btn-primary:hover { background: var(--color-accent-hover); box-shadow: 0 2px 12px rgba(58,77,199,0.25); }
+    .btn-secondary {
+      background: var(--color-surface);
+      color: var(--color-text);
+      border: 1px solid var(--color-border);
+    }
+    .btn-secondary:hover { background: #eef0f4; }
+    .btn svg { width: 16px; height: 16px; flex-shrink: 0; }
+
+    /* ── Section headings ────────────────────────────────── */
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--color-accent);
+      margin-bottom: 8px;
+    }
+    h2 {
+      font-family: var(--font-serif);
+      font-size: clamp(1.4rem, 3vw, 1.85rem);
+      font-weight: 700;
+      margin-bottom: 20px;
+      line-height: 1.3;
+    }
+    h3 {
+      font-family: var(--font-serif);
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin: 28px 0 10px;
+    }
+
+    p { margin-bottom: 16px; color: var(--color-text-secondary); }
+    p.lead { font-size: 17px; line-height: 1.75; color: var(--color-text); }
+
+    /* ── Figures ─────────────────────────────────────────── */
+    figure {
+      margin: 32px 0;
+      text-align: center;
+    }
+    figure img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      background: var(--color-surface);
+    }
+    figure.no-border img { border: none; background: transparent; }
+    figcaption {
+      margin-top: 12px;
+      font-size: 13.5px;
+      color: var(--color-text-secondary);
+      line-height: 1.55;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ── Key Points ──────────────────────────────────────── */
+    .key-points {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .key-point {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+    .key-point-title {
+      font-weight: 600;
+      font-size: 14px;
+      color: var(--color-text);
+      margin-bottom: 6px;
+    }
+    .key-point p { font-size: 13.5px; margin: 0; }
+
+    /* ── Results table ───────────────────────────────────── */
+    .table-wrapper {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 24px 0;
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13.5px;
+      white-space: nowrap;
+    }
+    thead { background: var(--color-surface); }
+    th {
+      padding: 10px 14px;
+      text-align: center;
+      font-weight: 600;
+      font-size: 12.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--color-text-secondary);
+      border-bottom: 2px solid var(--color-border);
+    }
+    th:first-child { text-align: left; }
+    td {
+      padding: 10px 14px;
+      text-align: center;
+      border-bottom: 1px solid var(--color-border);
+    }
+    td:first-child { text-align: left; font-weight: 500; }
+    tr:last-child td { border-bottom: none; }
+    td.best { font-weight: 700; color: var(--color-accent); }
+
+    /* ── Poster ──────────────────────────────────────────── */
+    .poster-preview {
+      display: block;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid var(--color-border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      transition: box-shadow 0.2s;
+    }
+    .poster-preview:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.1); }
+
+    /* ── BibTeX ──────────────────────────────────────────── */
+    .bibtex-block {
+      position: relative;
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin: 16px 0;
+    }
+    .bibtex-block pre {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      line-height: 1.65;
+      overflow-x: auto;
+      white-space: pre;
+      color: var(--color-text);
+      margin: 0;
+    }
+    .bibtex-copy {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: var(--color-bg);
+      border: 1px solid var(--color-border);
+      border-radius: 6px;
+      padding: 5px 12px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      font-family: var(--font-sans);
+      color: var(--color-text-secondary);
+      transition: background 0.15s, color 0.15s;
+    }
+    .bibtex-copy:hover { background: var(--color-accent-light); color: var(--color-accent); }
+    .bibtex-copy.copied { background: #d4edda; color: #155724; border-color: #b7dfca; }
+
+    /* ── Footer ──────────────────────────────────────────── */
+    footer {
+      border-top: 1px solid var(--color-border);
+      padding: 32px 0;
+      text-align: center;
+      font-size: 13px;
+      color: var(--color-text-secondary);
+    }
+    footer a { color: var(--color-accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    /* ── Image fallback ──────────────────────────────────── */
+    .img-fallback {
+      display: none;
+      background: var(--color-surface);
+      border: 2px dashed var(--color-border);
+      border-radius: 10px;
+      padding: 48px 24px;
+      text-align: center;
+      color: var(--color-text-secondary);
+      font-size: 14px;
+    }
+
+    /* ── Responsive ──────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .nav-title { max-width: 140px; font-size: 13px; }
+      .nav-links a { font-size: 12px; padding: 5px 7px; }
+      section { padding: 40px 0; }
+      .hero { padding: 48px 0 40px; }
+      .hero-buttons { flex-direction: column; align-items: center; }
+      .btn { width: 100%; max-width: 280px; justify-content: center; }
+      .key-points { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     Navigation
+     ═══════════════════════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <a href="#" class="nav-title">TF-JEPA</a>
+    <div class="nav-links">
+      <a href="#overview">Overview</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#poster">Poster</a>
+      <a href="#citation">Citation</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════════════════
+     Hero
+     ═══════════════════════════════════════════════════════ -->
+<section class="hero" id="hero">
+  <div class="container">
+    <div class="hero-venue">
+      <img src="paper/assets/ICLR-logo.svg"
+           alt="ICLR logo"
+           onerror="this.style.display='none'">
+      ICLR 2026 · TSALM Workshop
+    </div>
+    <h1>TF-JEPA: Predictive Alignment of Time–Frequency Representations Without Contrastive Pairs</h1>
+    <div class="hero-authors">Michael Chaykowsky</div>
+    <div class="hero-affiliation">Rivian and Volkswagen Group Technologies &nbsp;·&nbsp; Palo Alto, CA</div>
+    <div class="hero-buttons">
+      <a class="btn btn-primary" href="paper/14_TF_JEPA_Predictive_Alignmen.pdf">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        Paper
+      </a>
+      <a class="btn btn-secondary" href="https://iclr.cc/virtual/2026/10013864">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        ICLR Page
+      </a>
+      <a class="btn btn-secondary" href="https://github.com/jchaykow/tf-jepa">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+        Code
+      </a>
+      <a class="btn btn-secondary" href="paper/poster/ICLR-poster.png">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        Poster
+      </a>
+      <button class="btn btn-secondary" onclick="document.getElementById('citation').scrollIntoView({behavior:'smooth'})">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>
+        BibTeX
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     Overview
+     ═══════════════════════════════════════════════════════ -->
+<section id="overview">
+  <div class="container">
+    <div class="section-label">Overview</div>
+    <h2>Non-Contrastive Self-Supervised Learning for Time Series</h2>
+    <p class="lead">
+      Learning generalizable representations from multivariate time series is challenging due to
+      complex temporal dynamics, distribution shifts, and the difficulty of designing effective
+      contrastive pairs. <strong>TF-JEPA</strong> is a non-contrastive self-supervised method that
+      leverages predictive alignment to integrate representations from the time and frequency domains
+      without relying on negative sampling.
+    </p>
+    <p>
+      TF-JEPA utilizes dual online time and frequency encoders, each paired with its own
+      momentum-updated target encoder, embedding both views into a stable and unified latent space.
+      Experiments on sleep EEG, gesture recognition, mechanical fault detection, and EMG classification
+      demonstrate that TF-JEPA matches or surpasses contrastive and time–frequency consistency baselines.
+    </p>
+
+    <div class="key-points">
+      <div class="key-point">
+        <div class="key-point-title">No Negative Pairs</div>
+        <p>Replaces contrastive repulsion with cross-view prediction, eliminating the need for large batches or memory queues.</p>
+      </div>
+      <div class="key-point">
+        <div class="key-point-title">35% Less GPU Memory</div>
+        <p>Removes the quadratic B&times;B similarity matrix, enabling training with batches as small as 32.</p>
+      </div>
+      <div class="key-point">
+        <div class="key-point-title">Up to +8 pp F₁</div>
+        <p>Improves cross-dataset transfer macro-F₁ by up to eight percentage points over contrastive baselines.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     Method
+     ═══════════════════════════════════════════════════════ -->
+<section id="method">
+  <div class="container">
+    <div class="section-label">Method</div>
+    <h2>Predictive Alignment Across Time and Frequency</h2>
+    <p>
+      TF-JEPA couples an online time encoder with a momentum-updated frequency encoder and trains
+      them with a lightweight cosine loss. The architecture rests on three design choices:
+    </p>
+
+    <h3>Dual EMA Targets</h3>
+    <p>
+      Frozen time and frequency target encoders are updated after every step by an exponential
+      moving average (EMA, momentum <em>m</em>&nbsp;=&nbsp;0.995) of the online weights, providing
+      stable target representations with no gradient overhead.
+    </p>
+
+    <h3>Lightweight Predictors</h3>
+    <p>
+      Two small MLPs (128→256→128) map each online embedding to predict the corresponding
+      target view. A BYOL-style cosine loss aligns the two domains without negative pairs.
+    </p>
+
+    <h3>End-to-End Fine-Tuning</h3>
+    <p>
+      Because the objective avoids contrastive collapse, all encoder weights can be unfrozen during
+      downstream training, allowing full adaptation to the target distribution.
+    </p>
+
+    <figure>
+      <img src="paper/assets/TF-JEPA Architecture-2.png"
+           alt="TF-JEPA architecture diagram showing dual time and frequency encoders with EMA targets and cross-view predictors"
+           loading="lazy"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="img-fallback">Architecture diagram not found — see paper for details.</div>
+      <figcaption>
+        <strong>Figure 1.</strong> Architecture for TF-JEPA pre-training. Time and frequency views
+        are processed by dual online encoders. Each predictor MLP maps the online embedding to match
+        the EMA target of the opposite view, aligning both domains without negative samples.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     Results
+     ═══════════════════════════════════════════════════════ -->
+<section id="results">
+  <div class="container">
+    <div class="section-label">Results</div>
+    <h2>Cross-Dataset Transfer Performance</h2>
+    <p>
+      Each model is pre-trained on the source dataset and fine-tuned on the corresponding target
+      dataset with identical classifier heads. All experiments were conducted on a single NVIDIA
+      A10 GPU.
+    </p>
+
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Transfer Task</th>
+            <th colspan="2">TS-TCC</th>
+            <th colspan="2">TF-C</th>
+            <th colspan="2">TF-JEPA</th>
+            <th>ΔF₁</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th>Acc.</th><th>F₁</th>
+            <th>Acc.</th><th>F₁</th>
+            <th>Acc.</th><th>F₁</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>SleepEEG → Epilepsy</td>
+            <td>85.88</td><td>82.48</td>
+            <td>94.95</td><td>91.49</td>
+            <td class="best">95.31</td><td class="best">92.24</td>
+            <td>+0.75</td>
+          </tr>
+          <tr>
+            <td>FD-A → FD-B</td>
+            <td>73.85</td><td>77.31</td>
+            <td>89.34</td><td>91.62</td>
+            <td class="best">99.28</td><td class="best">99.47</td>
+            <td>+7.85</td>
+          </tr>
+          <tr>
+            <td>HAR → Gesture</td>
+            <td>63.33</td><td>59.91</td>
+            <td>68.33</td><td>65.79</td>
+            <td class="best">75.66</td><td class="best">74.34</td>
+            <td>+8.55</td>
+          </tr>
+          <tr>
+            <td>ECG → EMG</td>
+            <td>85.88</td><td>82.48</td>
+            <td>85.37</td><td>80.51</td>
+            <td class="best">87.80</td><td>80.03</td>
+            <td>−2.45</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <figure>
+      <img src="paper/assets/results.png"
+           alt="Transfer learning results comparison"
+           loading="lazy"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="img-fallback">Results figure not found.</div>
+      <figcaption><strong>Table 1.</strong> Full transfer performance (%) across four benchmark tasks. Positive ΔF₁ values favor TF-JEPA over the best competing baseline.</figcaption>
+    </figure>
+
+    <h3>Foundation Model Comparisons</h3>
+    <p>
+      TF-JEPA is also compared against large-scale foundation models (NormWear, CBraMod)
+      pre-trained on diverse physiological corpora. TF-JEPA uses only a 13.3% subset of TUH
+      EEG v2.0.1, yet remains competitive across all benchmarks.
+    </p>
+
+    <figure>
+      <img src="paper/assets/large-model-comparison.png"
+           alt="Foundation model comparison results"
+           loading="lazy"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="img-fallback">Foundation model comparison figure not found.</div>
+      <figcaption><strong>Table 2.</strong> Target-task performance (%) against foundation models pre-trained on orders of magnitude more data.</figcaption>
+    </figure>
+
+    <h3>EMA Momentum Analysis</h3>
+    <p>
+      An ablation across six momentum values (0.9–0.9995) shows that higher EMA momentum
+      consistently improves transfer metrics. The HAR→Gesture task shows +11.3 pp gain at
+      <em>m</em>&nbsp;=&nbsp;0.9995 compared to the lowest momentum, confirming that target
+      network stability is critical for non-contrastive time-series learning.
+    </p>
+
+    <figure>
+      <img src="paper/assets/TF-JEPA EMA Stability Plasticity Transfer HAR.png"
+           alt="EMA momentum ablation study on HAR to Gesture transfer"
+           loading="lazy"
+           onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+      <div class="img-fallback">EMA ablation figure not found.</div>
+      <figcaption><strong>Figure 2.</strong> Validation F₁ on Gesture after pre-training on HAR with fixed EMA momenta. Higher momentum yields slower convergence but superior final scores.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     Poster
+     ═══════════════════════════════════════════════════════ -->
+<section id="poster">
+  <div class="container">
+    <div class="section-label">Poster</div>
+    <h2>ICLR 2026 — TSALM Workshop Poster</h2>
+    <p>Presented at the <strong>1st ICLR Workshop on Time Series in the Age of Large Models (TSALM)</strong>. Click to view full resolution.</p>
+    <figure class="no-border">
+      <a href="paper/poster/ICLR-poster.png" target="_blank" rel="noopener">
+        <img class="poster-preview"
+             src="paper/poster/ICLR-poster-thumbnail.png"
+             alt="ICLR 2026 poster for TF-JEPA"
+             loading="lazy"
+             onerror="this.style.display='none'; this.closest('figure').querySelector('.img-fallback').style.display='block';">
+      </a>
+      <div class="img-fallback">Poster image not found.</div>
+    </figure>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     Citation
+     ═══════════════════════════════════════════════════════ -->
+<section id="citation">
+  <div class="container">
+    <div class="section-label">Citation</div>
+    <h2>BibTeX</h2>
+    <p>If you find this work useful, please cite our paper:</p>
+    <div class="bibtex-block">
+      <button class="bibtex-copy" onclick="copyBibtex(this)" aria-label="Copy BibTeX to clipboard">Copy</button>
+<pre id="bibtex-text">@inproceedings{chaykowsky2026tfjepa,
+  title     = {{TF-JEPA}: Predictive Alignment of Time--Frequency
+               Representations Without Contrastive Pairs},
+  author    = {Chaykowsky, Michael},
+  booktitle = {1st ICLR Workshop on Time Series in the Age of
+               Large Models (TSALM)},
+  year      = {2026},
+  url       = {https://iclr.cc/virtual/2026/10013864}
+}</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════
+     Footer
+     ═══════════════════════════════════════════════════════ -->
+<footer>
+  <div class="container">
+    <p>
+      TF-JEPA &nbsp;·&nbsp;
+      <a href="https://iclr.cc/virtual/2026/10013864">ICLR 2026 TSALM Workshop</a>
+      &nbsp;·&nbsp;
+      <a href="https://github.com/jchaykow/tf-jepa">GitHub</a>
+    </p>
+    <p style="margin-top:8px; font-size:12px; color:#999;">
+      Website template inspired by academic project pages.
+    </p>
+  </div>
+</footer>
+
+<script>
+function copyBibtex(btn) {
+  var text = document.getElementById('bibtex-text').textContent;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      showCopied(btn);
+    });
+  } else {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    showCopied(btn);
+  }
+}
+
+function showCopied(btn) {
+  btn.textContent = 'Copied!';
+  btn.classList.add('copied');
+  setTimeout(function () {
+    btn.textContent = 'Copy';
+    btn.classList.remove('copied');
+  }, 2000);
+}
+
+/* Highlight active nav link on scroll */
+(function () {
+  var sections = document.querySelectorAll('section[id]');
+  var navLinks = document.querySelectorAll('.nav-links a');
+  if (!sections.length || !navLinks.length) return;
+
+  var observer = new IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.isIntersecting) {
+        navLinks.forEach(function (link) {
+          link.style.color = '';
+          link.style.background = '';
+        });
+        var active = document.querySelector('.nav-links a[href="#' + entry.target.id + '"]');
+        if (active) {
+          active.style.color = 'var(--color-accent)';
+          active.style.background = 'var(--color-accent-light)';
+        }
+      }
+    });
+  }, { rootMargin: '-40% 0px -55% 0px' });
+
+  sections.forEach(function (s) { observer.observe(s); });
+})();
+</script>
+
+</body>
+</html>
